@@ -1,7 +1,7 @@
-./test-classes/
-./test-classes/*
-./classes/
-./classes/*
-./surefire-reports/
-./surefire-reports/*
-./*.jar
+test-classes/
+test-classes/*
+classes/
+classes/*
+surefire-reports/
+surefire-reports/*
+*.jar
