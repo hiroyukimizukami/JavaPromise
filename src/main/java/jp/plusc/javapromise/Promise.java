@@ -1,5 +1,10 @@
 package jp.plusc.javapromise;
 
+/**
+ * Promise enable to describe nested async-processes as pipeline processes.
+ * @author hiroyukimizukami
+ *
+ */
 public class Promise {
 
 	private Function func = null;
