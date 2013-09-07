@@ -1,7 +1,2 @@
-test-classes/
-test-classes/*
-classes/
-classes/*
-surefire-reports/
-surefire-reports/*
-*.jar
+target/
+taget/*
