@@ -1,2 +1,6 @@
 target/
 taget/*
+.classpath
+.project
+.settings/
+.settings/*
