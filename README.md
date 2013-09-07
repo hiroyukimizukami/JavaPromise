@@ -28,7 +28,7 @@
 
     promise.bind(funcOne, funcTwo).run();
 
-## DESCIPTION
+## DESCRIPTION
 JavaPromise enable to describe nested callback(async) proccess as pipe-line proccess.
 
 This code partially derived from brook.promise in [brook.js](https://github.com/hirokidaichi/brook)
