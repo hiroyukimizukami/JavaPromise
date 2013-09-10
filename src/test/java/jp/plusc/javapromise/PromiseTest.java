@@ -1,154 +1,143 @@
 package jp.plusc.javapromise;
 
-import static jp.plusc.javapromise.Throws.livesOk;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import jp.plusc.javapromise.Promise.Function;
-import jp.plusc.javapromise.Throws.Block;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PromiseTest {
+	private static final String endPointHuga = "http://hugahuga/huga";
+	private static final String endPointHoge = "http://hogehoge/hoge";
+	private static final String endPointMoga = "http://mogamoga/moga";
+	private static final String endPointMuga = "http://mugamuga/muga";
+	private static final Logger logger = LoggerFactory.getLogger(PromiseTest.class);
 
 	@Test
 	public void testNewOk() {
-		Assert.assertTrue(livesOk(new Block() {
+		new Promise();
+		new Promise(new Promise.Function() {
 			@Override
-			protected void impl() {
-				new Promise();
+			protected void impl(Object val) {
+				;
 			}
-		}));
-
-		Assert.assertTrue(livesOk(new Block() {
-			@Override
-			protected void impl() {
-				new Promise();
-			}
-		}));
+		});
+		Assert.assertTrue(true);
 	}
 
 	@Test
 	public void testInnerClassFunction() {
-		Assert.assertTrue(livesOk(new Block() {
+		final Promise.Function f = new Promise.Function() {
 			@Override
-			protected void impl() {
-				final Promise.Function f = new Promise.Function() {
-					@Override
-					protected void impl(Object val) {
-						Assert.assertNotNull(getNext());
-					}
-				};
-
-				Assert.assertTrue(livesOk(new Block() {
-
-					@Override
-					protected void impl() {
-						f.call(null);
-					}
-				}));
-
+			protected void impl(final Object val) {
+				Assert.assertNotNull(getNext());
 			}
-		}));
+		};
+		f.call(null);
+		Assert.assertTrue(true);
 	}
 
-	@Test
+	public void testRunEmptyPromise() {
+		new Promise().run();
+		Assert.assertTrue(true);
+	}
+
+	@Test(timeout=1000)
 	public void testPromiseWithFunction() {
+
+		final DummyAsyncTask async = new DummyAsyncTask(2);
 		final Promise p = new Promise();
-
-		Assert.assertTrue(livesOk(new Block() {
-
-			@Override
-			protected void impl() {
-				p.run();
-			}
-		}));
 
 		final Function fa = new Function() {
 
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object val) {
 				Assert.assertNull(val);
 
 				getNext().call("1");
 			}
 		};
+
 		final Function fb = new Function() {
 
 			@Override
 			protected void impl(final Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
 				Assert.assertEquals("1", String.valueOf(val));
 
-				CallbackModule c = new CallbackModule();
-				c.callback(new CallbackModule.Callbackable() {
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "hoge");
+
+				async.connectAsync(endPointHoge, params, new DummyAsyncTask.Callbackable() {
 
 					@Override
-					protected void impl(Object result) {
-						getNext().call(String.valueOf(val) + String.valueOf(result));
+					protected void impl(final Map<String, String>  result) {
+						Assert.assertEquals(endPointHoge, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
+						getNext().call(String.valueOf(val) + String.valueOf("2"));
 					}
 				});
 			}
 		};
+
 		final Function fc = new Function() {
 
 			@Override
-			protected void impl(Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
-				Assert.assertEquals("1" + CallbackModule.RESULT_TEXT, String.valueOf(val));
+			protected void impl(final Object val) {
+				Assert.assertEquals("12", String.valueOf(val));
+
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "huga");
+
+				async.connectAsync(endPointHuga, params, new DummyAsyncTask.Callbackable() {
+
+					@Override
+					protected void impl(final Map<String, String>  result) {
+						Assert.assertEquals(endPointHuga, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
+					}
+				});
 			}
 		};
 
-		Assert.assertTrue(livesOk(new Block() {
-			@Override
-			protected void impl() {
-				p.bind(fa).bind(fb, fc);
-			}
-		}));
-
-		Assert.assertTrue(livesOk(new Block() {
-			@Override
-			protected void impl() {
-				p.run();
-			}
-		}));
-
+		p.bind(fa).bind(fb, fc).run();
+		async.waitTask();
+		Assert.assertTrue(async.getThrowables().isEmpty());
 	}
 
-	@Test
+	@Test(timeout=1000)
 	public void testPromiseWithPromise() {
+
+		final DummyAsyncTask async = new DummyAsyncTask(4);
 		final Promise p = new Promise();
 
 		final Promise pa = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object val) {
 				Assert.assertNull(val);
-
 				getNext().call("1");
 			}
 		});
 		final Promise pb = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(final Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
+			protected void impl(final Object  val) {
 				Assert.assertEquals("1", String.valueOf(val));
 
-				CallbackModule c = new CallbackModule();
-				c.callback(new CallbackModule.Callbackable() {
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "hoge");
 
+				async.connectAsync(endPointHoge, params, new DummyAsyncTask.Callbackable() {
 					@Override
-					protected void impl(Object result) {
-						getNext().call(String.valueOf(val) + String.valueOf(result));
+					protected void impl(final Map<String, String>  result) {
+						Assert.assertEquals(endPointHoge, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
+
+						getNext().call(String.valueOf(val) + String.valueOf("2"));
 					}
 				});
 			}
@@ -157,43 +146,44 @@ public class PromiseTest {
 		final Function fa = new Promise.Function() {
 
 			@Override
-			protected void impl(final Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
-				Assert.assertEquals("1" + CallbackModule.RESULT_TEXT, String.valueOf(val));
+			protected void impl(final Object  val) {
+				Assert.assertEquals("12", String.valueOf(val));
 
-
-				CallbackModule c = new CallbackModule();
-				c.callback(new CallbackModule.Callbackable() {
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "huga");
+				async.connectAsync(endPointHuga, params, new DummyAsyncTask.Callbackable() {
 
 					@Override
-					protected void impl(Object result) {
-						getNext().call(String.valueOf(val) + String.valueOf(result));
+					protected void impl(final Map<String, String>  result) {
+
+						Assert.assertEquals(endPointHuga, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
+
+						getNext().call(String.valueOf(val) + String.valueOf("3"));
 					}
 				});
-
 			}
 		};
 
 		final Function fb = new Promise.Function() {
 
 			@Override
-			protected void impl(final Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
-				Assert.assertEquals("1" +
-						CallbackModule.RESULT_TEXT +
-						CallbackModule.RESULT_TEXT, String.valueOf(val));
+			protected void impl(final Object  val) {
+				Assert.assertEquals("123", String.valueOf(val));
 
-				CallbackModule c = new CallbackModule();
-				c.callback(new CallbackModule.Callbackable() {
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "moga");
+
+				async.connectAsync(endPointMoga, params, new DummyAsyncTask.Callbackable() {
 
 					@Override
-					protected void impl(Object result) {
-						getNext().call(String.valueOf(val) + String.valueOf(result));
+					protected void impl(final Map<String, String>  result) {
+						Assert.assertEquals(endPointMoga, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
+
+						getNext().call(String.valueOf(val) + String.valueOf("4"));
 					}
 				});
-
 			}
 		};
 
@@ -202,90 +192,26 @@ public class PromiseTest {
 		final Promise pc = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(Object val) {
-				Assert.assertNotNull(val);
-				Assert.assertTrue(val instanceof String);
-				Assert.assertEquals("1" +
-						CallbackModule.RESULT_TEXT +
-						CallbackModule.RESULT_TEXT +
-						CallbackModule.RESULT_TEXT, String.valueOf(val));
-			}
-		});
+			protected void impl(final Object  val) {
+				Assert.assertEquals("1234", String.valueOf(val));
 
-		Assert.assertTrue(livesOk(new Block() {
-			@Override
-			protected void impl() {
-				p.bind(pa).bind(pb, pc);
-			}
-		}));
+				final Map<String, Object> params = new HashMap<String, Object>();
+				params.put("args", "muga");
 
-		Assert.assertTrue(livesOk(new Block() {
-			@Override
-			protected void impl() {
-				p.run();
-			}
-		}));
+				async.connectAsync(endPointMuga, params, new DummyAsyncTask.Callbackable() {
 
-	}
-
-	@Test
-	public void testRunOnConcurrentEvent() {
-		final ScheduledExecutorService worker =
-				Executors.newScheduledThreadPool(3);
-
-		Promise p = new Promise();
-
-		final Promise pa = getEmptyPromiseWith(new Function() {
-
-			@Override
-			protected void impl(final Object val) {
-				final Runnable ra = new Runnable() {
-
-					public void run() {
-						Assert.assertNull(val);
-						getNext().call("1");
+					@Override
+					protected void impl(final Map<String, String>  result) {
+						Assert.assertEquals(endPointMuga, result.get(DummyAsyncTask.URL));
+						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
 					}
-				};
-
-				worker.schedule(ra, 200, TimeUnit.MILLISECONDS);
+				});
 			}
 		});
 
-		final Promise pb = getEmptyPromiseWith(new Function() {
-
-			@Override
-			protected void impl(final Object val) {
-				final Runnable ra = new Runnable() {
-
-					public void run() {
-						Assert.assertNotNull(val);
-						Assert.assertEquals("1", String.valueOf(val));
-						getNext().call(String.valueOf(val).concat("2"));
-					}
-				};
-
-				worker.schedule(ra, 100, TimeUnit.MILLISECONDS);
-			}
-		});
-
-		final Promise pc = getEmptyPromiseWith(new Function() {
-
-			@Override
-			protected void impl(final Object val) {
-				final Runnable ra = new Runnable() {
-
-					public void run() {
-						Assert.assertNotNull(val);
-						Assert.assertEquals("12", String.valueOf(val));
-						getNext().call(String.valueOf(val).concat("3"));
-					}
-				};
-
-				worker.schedule(ra, 300, TimeUnit.MILLISECONDS);
-			}
-		});
-
-		p.bind(pa, pb, pc).run();
+		p.bind(pa).bind(pb, pc).run();
+		async.waitTask();
+		Assert.assertTrue(async.getThrowables().isEmpty());
 	}
 
 	@Test
@@ -294,7 +220,7 @@ public class PromiseTest {
 		final Promise pa = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object  val) {
 				Assert.assertNotNull(val);
 				Assert.assertEquals("hoge", String.valueOf(val));
 
@@ -310,7 +236,7 @@ public class PromiseTest {
 		Promise p = new Promise();
 		final Promise pa = getEmptyPromiseWith(new Function() {
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object  val) {
 				holder.put("increment", 0);
 
 				getNext().call(null);
@@ -320,7 +246,7 @@ public class PromiseTest {
 		final Promise pb = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object  val) {
 				holder.put("increment", 1);
 				//getNext is not called here.
 			}
@@ -329,7 +255,7 @@ public class PromiseTest {
 		final Promise pc = getEmptyPromiseWith(new Function() {
 
 			@Override
-			protected void impl(Object val) {
+			protected void impl(final Object  val) {
 				// This promise must not be called.
 				Assert.assertTrue(false);
 			}
