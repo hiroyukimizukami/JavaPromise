@@ -3,8 +3,6 @@ package jp.plusc.javapromise;
 import java.util.HashMap;
 import java.util.Map;
 
-import jp.plusc.javapromise.Promise.Function;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -19,10 +17,10 @@ public class PromiseTest {
 
 	@Test
 	public void testNewOk() {
-		new Promise();
-		new Promise(new Promise.Function() {
+		new Promise<String>();
+		new Promise<String>(new Function<String>() {
 			@Override
-			protected void impl(Object val) {
+			protected void impl(String val) {
 				;
 			}
 		});
@@ -31,10 +29,10 @@ public class PromiseTest {
 
 	@Test
 	public void testInnerClassFunction() {
-		final Promise.Function f = new Promise.Function() {
+		final Function<String> f = new Function<String>() {
 			@Override
-			protected void impl(final Object val) {
-				Assert.assertNotNull(getNext());
+			protected void impl(final String val) {
+				Assert.assertNotNull(next());
 			}
 		};
 		f.call(null);
@@ -42,7 +40,7 @@ public class PromiseTest {
 	}
 
 	public void testRunEmptyPromise() {
-		new Promise().run();
+		new Promise<String>().run();
 		Assert.assertTrue(true);
 	}
 
@@ -50,22 +48,22 @@ public class PromiseTest {
 	public void testPromiseWithFunction() {
 
 		final DummyAsyncTask async = new DummyAsyncTask(2);
-		final Promise p = new Promise();
+		final Promise<String> p = new Promise<String>();
 
-		final Function fa = new Function() {
+		final Function<String> fa = new Function<String>() {
 
 			@Override
-			protected void impl(final Object val) {
+			protected void impl(final String val) {
 				Assert.assertNull(val);
 
-				getNext().call("1");
+				next().call("1");
 			}
 		};
 
-		final Function fb = new Function() {
+		final Function<String> fb = new Function<String>() {
 
 			@Override
-			protected void impl(final Object val) {
+			protected void impl(final String val) {
 				Assert.assertEquals("1", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -77,16 +75,16 @@ public class PromiseTest {
 					protected void impl(final Map<String, String>  result) {
 						Assert.assertEquals(endPointHoge, result.get(DummyAsyncTask.URL));
 						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
-						getNext().call(String.valueOf(val) + String.valueOf("2"));
+						next().call(String.valueOf(val) + String.valueOf("2"));
 					}
 				});
 			}
 		};
 
-		final Function fc = new Function() {
+		final Function<String> fc = new Function<String>() {
 
 			@Override
-			protected void impl(final Object val) {
+			protected void impl(final String val) {
 				Assert.assertEquals("12", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -112,20 +110,20 @@ public class PromiseTest {
 	public void testPromiseWithPromise() {
 
 		final DummyAsyncTask async = new DummyAsyncTask(4);
-		final Promise p = new Promise();
+		final Promise<String> p = new Promise<String>();
 
-		final Promise pa = getEmptyPromiseWith(new Function() {
+		final Promise<String> pa = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object val) {
+			protected void impl(final String val) {
 				Assert.assertNull(val);
-				getNext().call("1");
+				next().call("1");
 			}
 		});
-		final Promise pb = getEmptyPromiseWith(new Function() {
+		final Promise<String> pb = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				Assert.assertEquals("1", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -137,16 +135,16 @@ public class PromiseTest {
 						Assert.assertEquals(endPointHoge, result.get(DummyAsyncTask.URL));
 						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
 
-						getNext().call(String.valueOf(val) + String.valueOf("2"));
+						next().call(String.valueOf(val) + String.valueOf("2"));
 					}
 				});
 			}
 		});
 
-		final Function fa = new Promise.Function() {
+		final Function<String> fa = new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				Assert.assertEquals("12", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -159,16 +157,16 @@ public class PromiseTest {
 						Assert.assertEquals(endPointHuga, result.get(DummyAsyncTask.URL));
 						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
 
-						getNext().call(String.valueOf(val) + String.valueOf("3"));
+						next().call(String.valueOf(val) + String.valueOf("3"));
 					}
 				});
 			}
 		};
 
-		final Function fb = new Promise.Function() {
+		final Function<String> fb = new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				Assert.assertEquals("123", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -181,7 +179,7 @@ public class PromiseTest {
 						Assert.assertEquals(endPointMoga, result.get(DummyAsyncTask.URL));
 						Assert.assertEquals(String.valueOf(params), result.get(DummyAsyncTask.PARAMS));
 
-						getNext().call(String.valueOf(val) + String.valueOf("4"));
+						next().call(String.valueOf(val) + String.valueOf("4"));
 					}
 				});
 			}
@@ -189,10 +187,10 @@ public class PromiseTest {
 
 		pb.bind(fa, fb);
 
-		final Promise pc = getEmptyPromiseWith(new Function() {
+		final Promise<String> pc = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				Assert.assertEquals("1234", String.valueOf(val));
 
 				final Map<String, Object> params = new HashMap<String, Object>();
@@ -216,15 +214,15 @@ public class PromiseTest {
 
 	@Test
 	public void testRunWithArguments() {
-		Promise p = new Promise();
-		final Promise pa = getEmptyPromiseWith(new Function() {
+		Promise<String> p = new Promise<String>();
+		final Promise<String> pa = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				Assert.assertNotNull(val);
 				Assert.assertEquals("hoge", String.valueOf(val));
 
-				getNext().call(null);
+				next().call(null);
 			}
 		});
 
@@ -233,30 +231,30 @@ public class PromiseTest {
 
 	public void testBreakChainIntentionally() {
 		final Map<String, Integer> holder = new HashMap<String, Integer>();
-		Promise p = new Promise();
-		final Promise pa = getEmptyPromiseWith(new Function() {
+		Promise<String> p = new Promise<String>();
+		final Promise<String> pa = getEmptyPromiseWith(new Function<String>() {
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				holder.put("increment", 0);
 
-				getNext().call(null);
+				next().call(null);
 			}
 		});
 
-		final Promise pb = getEmptyPromiseWith(new Function() {
+		final Promise<String> pb = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
+			protected void impl(final String  val) {
 				holder.put("increment", 1);
 				//getNext is not called here.
 			}
 		});
 
-		final Promise pc = getEmptyPromiseWith(new Function() {
+		final Promise<String> pc = getEmptyPromiseWith(new Function<String>() {
 
 			@Override
-			protected void impl(final Object  val) {
-				// This promise must not be called.
+			protected void impl(final String  val) {
+				// This Promise<String> must not be called.
 				Assert.assertTrue(false);
 			}
 		});
@@ -266,7 +264,7 @@ public class PromiseTest {
 	}
 
 
-	private static Promise getEmptyPromiseWith(Function f) {
-		return new Promise(f);
+	private static Promise<String> getEmptyPromiseWith(Function<String> f) {
+		return new Promise<String>(f);
 	}
 }

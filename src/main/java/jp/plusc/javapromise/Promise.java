@@ -1,37 +1,39 @@
 package jp.plusc.javapromise;
 
+
+
 /**
  * Promise enable to describe nested async-processes as pipeline processes.
  * @author hiroyukimizukami
  *
  */
-public class Promise {
+public class Promise<T> {
 
-	private Function func = null;
-	private Function bottom = null;
+	private Function<T> func = null;
+	private Function<T> bottom = null;
 
 	public Promise() {
-		Function pseudoFunction = getEmptyFunction();
+		Function<T> pseudoFunction = getEmptyFunction();
 		func = pseudoFunction;
 		bottom = pseudoFunction;
 	}
 
-	public Promise(Function f) {
+	public Promise(Function<T> f) {
 		func = f;
 		bottom = f;
 	}
 
-	public Promise bind(Function ...functions) {
-		for (Function f : functions) {
-			bottom.next = f;
-			bottom = bottom.next;
+	public Promise<T> bind(Function<T> ...functions) {
+		for (Function<T> f : functions) {
+			bottom.n = f;
+			bottom = bottom.n;
 		}
 		return this;
 	}
 
-	public Promise bind(Promise ...promises) {
-		for (Promise p : promises) {
-			bottom.next = p.func;
+	public Promise<T> bind(Promise<T> ...promises) {
+		for (Promise<T> p : promises) {
+			bottom.n = p.func;
 			bottom = p.bottom;
 		}
 		return this;
@@ -41,42 +43,18 @@ public class Promise {
 		func.call(null);
 	}
 
-	public void run(Object val) {
+	public void run(T val) {
 		func.call(val);
 	}
 
-	private static final Function getEmptyFunction() {
-		return new Function() {
+	private final Function<T> getEmptyFunction() {
+		return new Function<T>() {
 
 			@Override
-			protected void impl(Object val) {
-				getNext().call(val);
+			protected void impl(T val) {
+				next().call(val);
 			}
 
 		};
-	}
-
-	public static abstract class Function {
-		Function next = null;
-
-		public final void call(final Object val) {
-			impl(val);
-		}
-
-		protected Function getNext() {
-			if (next == null) {
-				next = new Function () {
-
-					@Override
-					protected void impl(final Object val) {
-						;
-					}
-
-				};
-			}
-			return next;
-		}
-
-		protected abstract void impl(final Object val);
 	}
 }
